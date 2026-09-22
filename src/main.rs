@@ -5,11 +5,53 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
+use clap::Parser;
 use mirakc_webui::mirakc;
 use mirakc_webui::recorded;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::info;
+
+/// mirakc Web UI Server
+#[derive(Parser, Debug)]
+#[command(about, version)]
+struct Cli {
+    /// Recorded files directory
+    #[arg(short, long, default_value = "/var/lib/mirakc/recorded")]
+    dir: PathBuf,
+
+    /// Thumbnails directory
+    #[arg(short, long, default_value = "/var/lib/mirakc/thumbnails")]
+    thumbnails: PathBuf,
+
+    /// mirakc API URL
+    #[arg(short, long, default_value = "http://localhost:40772")]
+    mirakc: String,
+
+    /// ffmpeg path
+    #[arg(short, long, default_value = "/usr/bin/ffmpeg")]
+    ffmpeg: PathBuf,
+
+    /// Thumbnail offset (seconds)
+    #[arg(short, long, default_value_t = 5)]
+    offset: u64,
+
+    /// Trash directory
+    #[arg(long)]
+    trash: Option<PathBuf>,
+
+    /// Trash thumbnails directory
+    #[arg(long)]
+    trash_thumbs: Option<PathBuf>,
+
+    /// Trash TTL (days)
+    #[arg(long, default_value_t = 7)]
+    ttl: u64,
+
+    /// Cleanup interval (seconds)
+    #[arg(long, default_value_t = 3600)]
+    cleanup: u64,
+}
 
 #[derive(Clone, Serialize, Deserialize)]
 pub struct TrashInfo {
@@ -58,54 +100,31 @@ pub struct TrashFileView {
 async fn main() {
     tracing_subscriber::fmt::init();
 
-    let recorded_dir = std::env::args()
-        .find(|arg| arg.starts_with("-d="))
-        .map(|arg| PathBuf::from(arg.trim_start_matches("-d=")))
-        .unwrap_or_else(|| PathBuf::from("/var/lib/mirakc/recorded"));
+    let cli = Cli::parse();
 
-    let thumbnails_dir = std::env::args()
-        .find(|arg| arg.starts_with("-t="))
-        .map(|arg| PathBuf::from(arg.trim_start_matches("-t=")))
-        .unwrap_or_else(|| PathBuf::from("/var/lib/mirakc/thumbnails"));
-
-    let mirakc_api = std::env::args()
-        .find(|arg| arg.starts_with("-m="))
-        .map(|arg| arg.trim_start_matches("-m=").to_string())
-        .unwrap_or_else(|| "http://localhost:40772".to_string());
-
-    let ffmpeg_path = std::env::args()
-        .find(|arg| arg.starts_with("-f="))
-        .map(|arg| PathBuf::from(arg.trim_start_matches("-f=")))
-        .unwrap_or_else(|| PathBuf::from("/usr/bin/ffmpeg"));
-
-    let thumbnail_offset = std::env::args()
-        .find(|arg| arg.starts_with("-s="))
-        .and_then(|arg| arg.trim_start_matches("-s=").parse::<u64>().ok())
-        .unwrap_or_else(|| 5);
-
-    let trash_dir = std::env::args()
-        .find(|arg| arg.starts_with("-trash="))
-        .map(|arg| PathBuf::from(arg.trim_start_matches("-trash=")))
-        .unwrap_or_else(|| recorded_dir.join(".trash"));
-
-    let trash_thumb_dir = std::env::args()
-        .find(|arg| arg.starts_with("-tt="))
-        .map(|arg| PathBuf::from(arg.trim_start_matches("-tt=")))
-        .unwrap_or_else(|| thumbnails_dir.join(".trash"));
-
-    let trash_ttl_days = std::env::args()
-        .find(|arg| arg.starts_with("-ttl="))
-        .and_then(|arg| arg.trim_start_matches("-ttl=").parse::<u64>().ok())
-        .unwrap_or_else(|| 7);
-
-    let cleanup_interval_secs = std::env::args()
-        .find(|arg| arg.starts_with("-cleanup="))
-        .and_then(|arg| arg.trim_start_matches("-cleanup=").parse::<u64>().ok())
-        .unwrap_or_else(|| 3600); // 1 hour
+    let recorded_dir = cli.dir;
+    let thumbnails_dir = cli.thumbnails;
+    let mirakc_api = if cli.mirakc.starts_with("http://") || cli.mirakc.starts_with("https://") {
+        cli.mirakc
+    } else {
+        format!("http://{}", cli.mirakc)
+    };
+    let ffmpeg_path = cli.ffmpeg;
+    let thumbnail_offset = cli.offset;
+    let trash_dir = cli.trash.unwrap_or_else(|| recorded_dir.join(".trash"));
+    let trash_thumb_dir = cli.trash_thumbs.unwrap_or_else(|| thumbnails_dir.join(".trash"));
+    let trash_ttl_days = cli.ttl;
+    let cleanup_interval_secs = cli.cleanup;
 
     // Ensure trash dirs exist
-    tokio::fs::create_dir_all(&trash_dir).await.unwrap();
-    tokio::fs::create_dir_all(&trash_thumb_dir).await.unwrap();
+    if let Err(e) = tokio::fs::create_dir_all(&trash_dir).await {
+        eprintln!("ERROR: Failed to create trash directory: {} (path: {})\nPlease check permissions or specify a different path with --trash=.", e, trash_dir.display());
+        std::process::exit(1);
+    }
+    if let Err(e) = tokio::fs::create_dir_all(&trash_thumb_dir).await {
+        eprintln!("ERROR: Failed to create trash thumbnail directory: {} (path: {})\nPlease check permissions or specify a different path with --trash-thumbs=.", e, trash_thumb_dir.display());
+        std::process::exit(1);
+    }
 
     let state = AppState {
         recorded_dir,
