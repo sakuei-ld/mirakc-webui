@@ -5,6 +5,7 @@ use axum::{
     routing::{delete, get, post},
     Router,
 };
+use mirakc_webui::mirakc;
 use mirakc_webui::recorded;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -369,7 +370,7 @@ async fn get_trash_files(
         .as_secs();
     let ttl_secs = state.trash_ttl_days * 24 * 3600;
 
-    while let Some(entry) = entries.next_entry().await? {
+    while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
         if !path.is_file() {
             continue;
@@ -656,7 +657,7 @@ async fn cleanup_expired(state: &AppState) -> usize {
         Err(_) => return 0,
     };
 
-    while let Some(entry) = entries.next_entry().await? {
+    while let Ok(Some(entry)) = entries.next_entry().await {
         let path = entry.path();
         if !path.is_file() {
             continue;
