@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mirakc-webui</title>
+<style>
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-hover: #252836;
+  --border: #2a2d3a;
+  --text: #e4e6f0;
+  --text-dim: #8b8fa3;
+  --accent: #6c8cff;
+  --accent-hover: #8aa4ff;
+  --red: #ff5c5c;
+  --orange: #ffb347;
+  --green: #4ec993;
+  --radius: 8px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Meiryo', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+/* Header */
+.header {
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+.controls {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 200px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.search-box:focus { border-color: var(--accent); }
+.search-box::placeholder { color: var(--text-dim); }
+.tab-btn, .sort-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text-dim);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.tab-btn:hover, .sort-btn:hover { border-color: var(--accent); color: var(--text); }
+.tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.sort-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.count-badge {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-left: auto;
+}
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+  padding: 24px;
+}
+/* Card */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.card-thumb {
+  width: 100%;
+  height: 180px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+}
+.card-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.card-thumb .placeholder {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.card-thumb .drop-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.drop-badge.ok { background: rgba(78,201,147,0.15); color: var(--green); }
+.drop-badge.warn { background: rgba(255,179,71,0.15); color: var(--orange); }
+.drop-badge.bad { background: rgba(255,92,92,0.15); color: var(--red); }
+.card-body { padding: 14px; }
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card-channel {
+  font-size: 12px;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.card-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.card-meta span { white-space: nowrap; }
+.card-meta .drops { color: var(--orange); }
+.card-meta .size { color: var(--text-dim); }
+.card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.card-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.card-btn:hover { border-color: var(--accent); background: var(--bg-hover); }
+.card-btn.download:hover { border-color: var(--accent); color: var(--accent); }
+.card-btn.delete:hover { border-color: var(--red); color: var(--red); }
+.card-btn.restore:hover { border-color: var(--green); color: var(--green); }
+.card-btn.permanent:hover { border-color: var(--red); color: var(--red); }
+/* Trash card specific */
+.card.trash-card {
+  border-left: 3px solid var(--orange);
+}
+.card.trash-card .card-thumb {
+  opacity: 0.85;
+}
+/* Detail Modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 24px;
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--bg);
+  color: var(--text-dim);
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+.modal-close:hover { color: var(--text); }
+.modal-thumb {
+  width: 100%;
+  max-height: 300px;
+  object-fit: contain;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  background: var(--bg);
+}
+.modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.modal-channel {
+  color: var(--accent);
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.modal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat-box {
+  background: var(--bg);
+  border-radius: var(--radius);
+  padding: 12px;
+  text-align: center;
+}
+.stat-box .label { font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+.stat-box .value { font-size: 18px; font-weight: 700; }
+.stat-box .value.green { color: var(--green); }
+.stat-box .value.orange { color: var(--orange); }
+.stat-box .value.red { color: var(--red); }
+.stat-box .value.accent { color: var(--accent); }
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { border-color: var(--accent); background: var(--bg-hover); }
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn.primary:hover { background: var(--accent-hover); }
+.btn.danger {
+  background: var(--red);
+  border-color: var(--red);
+  color: #fff;
+}
+.btn.danger:hover { background: #ff7a7a; }
+.btn.success {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+.btn.success:hover { background: #6dd9a8; }
+/* Confirm Modal */
+.confirm-modal {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 420px;
+  padding: 24px;
+  position: relative;
+}
+.confirm-modal h3 {
+  margin-bottom: 12px;
+  font-size: 16px;
+}
+.confirm-modal p {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.confirm-modal .filename {
+  font-size: 12px;
+  word-break: break-all;
+  background: var(--bg);
+  padding: 8px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.confirm-modal .actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 60px;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.loading .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* Responsive */
+@media (max-width: 600px) {
+  .grid { grid-template-columns: 1fr; padding: 12px; }
+  .controls { flex-direction: column; }
+  .search-box { min-width: 100%; }
+  .modal { width: 95%; padding: 16px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📺 mirakc-webui</h1>
+  <div class="controls">
+    <button class="tab-btn active" data-tab="recorded">📁 録画一覧</button>
+    <button class="tab-btn" data-tab="trash">🗑 ゴミ箱</button>
+    <input type="text" class="search-box" id="searchBox" placeholder="番組名・チャンネルで検索...">
+    <button class="sort-btn active" data-sort="">最新順</button>
+    <button class="sort-btn" data-sort="drops">ドロップ順</button>
+    <button class="sort-btn" data-sort="size">サイズ順</button>
+    <span class="count-badge" id="countBadge">読み込み中...</span>
+  </div>
+</div>
+
+<div class="grid" id="grid">
+  <div class="loading">
+    <div class="spinner"></div>
+    <div>ファイル一覧を読み込み中...</div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="confirm-modal" id="confirmModal">
+    <h3 id="confirmTitle">確認</h3>
+    <p id="confirmMessage"></p>
+    <div class="filename" id="confirmFilename"></div>
+    <div class="actions" id="confirmActions"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api/recorded';
+const TRASH_API = '/api/trash';
+let allFiles = [];
+let trashFiles = [];
+let currentTab = 'recorded';
+let currentSort = '';
+let currentSearch = '';
+let confirmCallback = null;
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    currentSort = '';
+    currentSearch = '';
+    document.getElementById('searchBox').value = '';
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.sort-btn[data-sort=""]').classList.add('active');
+    loadData();
+  });
+});
+
+// Fetch files
+async function fetchFiles() {
+  const params = new URLSearchParams();
+  if (currentSearch) params.set('q', currentSearch);
+  if (currentSort) params.set('sort', currentSort);
+  const url = `${API}?${params.toString()}`;
+  try {
+    const res = await fetch(url);
+    allFiles = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch files:', e);
+    allFiles = [];
+  }
+}
+
+async function fetchTrashFiles() {
+  try {
+    const res = await fetch(TRASH_API);
+    trashFiles = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch trash:', e);
+    trashFiles = [];
+  }
+}
+
+async function loadData() {
+  if (currentTab === 'recorded') {
+    await fetchFiles();
+    renderGrid(allFiles, false);
+  } else {
+    await fetchTrashFiles();
+    renderGrid(trashFiles, true);
+  }
+}
+
+// Render grid
+function renderGrid(files, isTrash) {
+  const grid = document.getElementById('grid');
+  document.getElementById('countBadge').textContent = `${files.length}件`;
+
+  if (files.length === 0) {
+    grid.innerHTML = `<div class="loading"><div>${isTrash ? 'ゴミ箱は空です' : '録画ファイルが見つかりません'}</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = files.map(f => {
+    const dropClass = f.drop_count === 0 ? 'ok' : f.drop_count < 10 ? 'warn' : 'bad';
+    const thumbHtml = f.thumbnail_url
+      ? `<img src="${f.thumbnail_url}" alt="${f.filename}" loading="lazy">`
+      : `<div class="placeholder">サムネイルなし</div>`;
+    
+    let actionsHtml = '';
+    if (isTrash) {
+      const expired = f.days_remaining === 0;
+      const expiryText = expired ? '⚠️ 削除予定' : `残り ${f.days_remaining}日`;
+      actionsHtml = `
+        <button class="card-btn restore" onclick="showRestoreConfirm('${f.id}', '${escHtml(f.filename)}')">↩ 復元</button>
+        <button class="card-btn permanent" onclick="showPermanentDeleteConfirm('${f.id}', '${escHtml(f.filename)}')">✕ 削除</button>
+      `;
+    } else {
+      actionsHtml = `
+        <a class="card-btn download" href="/api/recorded/${f.id}/download" download>⬇ ダウンロード</a>
+        <button class="card-btn delete" onclick="showDeleteConfirm('${f.id}', '${escHtml(f.filename)}')">🗑 削除</button>
+      `;
+    }
+
+    return `
+      <div class="card ${isTrash ? 'trash-card' : ''}">
+        <div class="card-thumb" onclick="showDetail('${f.id}', ${isTrash})">
+          ${thumbHtml}
+          <span class="drop-badge ${dropClass}">
+            ${f.drop_count} drops
+          </span>
+          ${isTrash ? `<span class="drop-badge" style="left:8px;right:auto;background:rgba(255,179,71,0.15);color:var(--orange)">${expiryText}</span>` : ''}
+        </div>
+        <div class="card-body">
+          <div class="card-title">${escHtml(f.program_name)}</div>
+          <div class="card-channel">${escHtml(f.channel_name)}</div>
+          <div class="card-meta">
+            <span class="time">⏱ ${f.recording_time}</span>
+            <span class="drops">${f.drop_count} drops (${f.drop_percentage.toFixed(2)}%)</span>
+            <span class="size">💾 ${f.filesize_mb.toFixed(0)}MB</span>
+          </div>
+          <div class="card-actions">
+            ${actionsHtml}
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// Show detail modal
+async function showDetail(id, isTrash) {
+  const overlay = document.getElementById('modalOverlay');
+  const content = document.getElementById('modalContent');
+  overlay.classList.add('open');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div><div>詳細読み込み中...</div></div>';
+
+  try {
+    const api = isTrash ? TRASH_API : API;
+    const res = await fetch(`${api}/${id}`);
+    const f = await res.json();
+
+    const dropClass = f.drop_count === 0 ? 'green' : f.drop_count < 10 ? 'orange' : 'red';
+    const thumbHtml = f.thumbnail_url
+      ? `<img class="modal-thumb" src="${f.thumbnail_url}" alt="${f.filename}">`
+      : '';
+
+    let actionsHtml = '';
+    if (isTrash) {
+      actionsHtml = `
+        <button class="btn success" onclick="restoreFile('${f.id}', '${escHtml(f.filename)}')">↩ 復元</button>
+        <button class="btn danger" onclick="confirmPermanentDelete('${f.id}', '${escHtml(f.filename)}')">✕ 永久削除</button>
+        <button class="btn" onclick="closeModal()">閉じる</button>
+      `;
+    } else {
+      actionsHtml = `
+        <a class="btn primary" href="/api/recorded/${f.id}/download" download>⬇ ダウンロード</a>
+        <button class="btn danger" onclick="showDeleteConfirm('${f.id}', '${escHtml(f.filename)}')">🗑 削除</button>
+        <button class="btn" onclick="closeModal()">閉じる</button>
+      `;
+    }
+
+    content.innerHTML = `
+      ${thumbHtml}
+      <div class="modal-title">${escHtml(f.program_name)}</div>
+      <div class="modal-channel">${escHtml(f.channel_name)}</div>
+      <div class="modal-stats">
+        <div class="stat-box">
+          <div class="label">録画時間</div>
+          <div class="value accent">${f.recording_time}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">ファイルサイズ</div>
+          <div class="value accent">${f.filesize_mb.toFixed(0)} MB</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">ドロップ数</div>
+          <div class="value ${dropClass}">${f.drop_count}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">ドロップ率</div>
+          <div class="value ${dropClass}">${f.drop_percentage.toFixed(2)}%</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">エラー数</div>
+          <div class="value ${f.error_count > 0 ? 'red' : 'green'}">${f.error_count}</div>
+        </div>
+        <div class="stat-box">
+          <div class="label">総パケット数</div>
+          <div class="value">${f.total_packets.toLocaleString()}</div>
+        </div>
+      </div>
+      <h3 style="margin-bottom:8px;font-size:14px;color:var(--text-dim)">ファイル名</h3>
+      <div style="font-size:13px;word-break:break-all;margin-bottom:16px;color:var(--text)">${escHtml(f.filename)}</div>
+      ${isTrash ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:16px">📅 削除予定: ${f.days_remaining}日後</div>` : ''}
+      <div class="modal-actions">
+        ${actionsHtml}
+      </div>`;
+  } catch (e) {
+    content.innerHTML = `<div class="loading"><div>エラー: ${e.message}</div></div>`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+// Delete confirm (move to trash)
+function showDeleteConfirm(id, filename) {
+  showConfirm(
+    '🗑️ ゴミ箱に移動',
+    'このファイルをゴミ箱に移動しますか？<br>ゴミ箱からは復元できます。',
+    filename,
+    () => doDelete(id, filename)
+  );
+}
+
+async function doDelete(id, filename) {
+  try {
+    const res = await fetch(`${API}/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      closeConfirm();
+      await loadData();
+    } else {
+      alert('削除に失敗しました');
+    }
+  } catch (e) {
+    alert('エラー: ' + e.message);
+  }
+}
+
+// Restore
+function showRestoreConfirm(id, filename) {
+  showConfirm(
+    '↩ 復元',
+    'このファイルを元の場所に復元しますか？',
+    filename,
+    () => restoreFile(id, filename)
+  );
+}
+
+async function restoreFile(id, filename) {
+  try {
+    const res = await fetch(`${TRASH_API}/${id}/restore`, { method: 'POST' });
+    if (res.ok) {
+      closeConfirm();
+      await loadData();
+    } else {
+      alert('復元に失敗しました');
+    }
+  } catch (e) {
+    alert('エラー: ' + e.message);
+  }
+}
+
+// Permanent delete
+function showPermanentDeleteConfirm(id, filename) {
+  showConfirm(
+    '✕ 永久削除',
+    'このファイルを完全に削除しますか？<br>この操作は取り消せません。',
+    filename,
+    () => permanentDelete(id, filename)
+  );
+}
+
+async function permanentDelete(id, filename) {
+  try {
+    const res = await fetch(`${TRASH_API}/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      closeConfirm();
+      await loadData();
+    } else {
+      alert('削除に失敗しました');
+    }
+  } catch (e) {
+    alert('エラー: ' + e.message);
+  }
+}
+
+// Confirm modal
+function showConfirm(title, message, filename, callback) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMessage').innerHTML = message;
+  document.getElementById('confirmFilename').textContent = filename;
+  confirmCallback = callback;
+  
+  const actions = document.getElementById('confirmActions');
+  actions.innerHTML = `
+    <button class="btn" id="confirmCancel">キャンセル</button>
+    <button class="btn danger" id="confirmOk">確認</button>
+  `;
+  
+  document.getElementById('confirmCancel').addEventListener('click', closeConfirm);
+  document.getElementById('confirmOk').addEventListener('click', () => {
+    if (confirmCallback) confirmCallback();
+  });
+  
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmCallback = null;
+}
+
+// Event listeners
+document.getElementById('searchBox').addEventListener('input', (e) => {
+  currentSearch = e.target.value;
+  loadData();
+});
+
+document.querySelectorAll('.sort-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (currentTab === 'trash') return;
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentSort = btn.dataset.sort;
+    loadData();
+  });
+});
+
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeModal();
+});
+
+document.getElementById('confirmOverlay').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeConfirm();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeModal();
+    closeConfirm();
+  }
+});
+
+// Escaping
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// Init
+loadData();
+</script>
+</body>
+</html>
