@@ -369,7 +369,7 @@ async fn get_trash_files(
         .as_secs();
     let ttl_secs = state.trash_ttl_days * 24 * 3600;
 
-    while let Some(entry) = entries.next_entry().await.ok() {
+    while let Some(entry) = entries.next_entry().await? {
         let path = entry.path();
         if !path.is_file() {
             continue;
@@ -405,7 +405,7 @@ async fn get_trash_files(
             let filename = id.trim_end_matches(".m2ts").trim_end_matches(".ts");
             let parts: Vec<&str> = filename.rsplitn(2, '_').collect();
             if parts.len() >= 2 {
-                match recorded::fetch_program_info(&state.mirakc_api, parts[1]).await {
+                match mirakc::fetch_program_info(&state.mirakc_api, parts[1]).await {
                     Some(info) => (info.name, info.service_name),
                     None => ("不明".to_string(), "不明".to_string()),
                 }
@@ -579,7 +579,7 @@ async fn get_trash_file(
         let filename = id.trim_end_matches(".m2ts").trim_end_matches(".ts");
         let parts: Vec<&str> = filename.rsplitn(2, '_').collect();
         if parts.len() >= 2 {
-            match recorded::fetch_program_info(&state.mirakc_api, parts[1]).await {
+            match mirakc::fetch_program_info(&state.mirakc_api, parts[1]).await {
                 Some(info) => (info.name, info.service_name),
                 None => ("不明".to_string(), "不明".to_string()),
             }
@@ -656,7 +656,7 @@ async fn cleanup_expired(state: &AppState) -> usize {
         Err(_) => return 0,
     };
 
-    while let Some(entry) = entries.next_entry().await.ok() {
+    while let Some(entry) = entries.next_entry().await? {
         let path = entry.path();
         if !path.is_file() {
             continue;
