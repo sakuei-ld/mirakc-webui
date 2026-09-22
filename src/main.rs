@@ -21,8 +21,8 @@ struct Cli {
     dir: PathBuf,
 
     /// Thumbnails directory
-    #[arg(short, long, default_value = "/var/lib/mirakc/thumbnails")]
-    thumbnails: PathBuf,
+    #[arg(short, long)]
+    thumbnails: Option<PathBuf>,
 
     /// mirakc API URL
     #[arg(short, long, default_value = "http://localhost:40772")]
@@ -102,8 +102,12 @@ async fn main() {
 
     let cli = Cli::parse();
 
-    let recorded_dir = cli.dir;
-    let thumbnails_dir = cli.thumbnails;
+   let recorded_dir = cli.dir;
+    let thumbnails_dir = cli.thumbnails.unwrap_or_else(|| {
+        recorded_dir.parent()
+            .map(|p| p.join("thumbnails"))
+            .unwrap_or_else(|| PathBuf::from("/var/lib/mirakc/thumbnails"))
+    });
     let mirakc_api = if cli.mirakc.starts_with("http://") || cli.mirakc.starts_with("https://") {
         cli.mirakc
     } else {
