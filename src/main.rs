@@ -79,6 +79,12 @@ pub struct SearchQuery {
     pub sort: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct ProgramQuery {
+    pub start_at: Option<u64>,
+    pub end_at: Option<u64>,
+}
+
 #[derive(Serialize)]
 pub struct TrashFileView {
     pub id: String,
@@ -153,17 +159,26 @@ async fn main() {
 
     let app = Router::new()
         .route("/", get(index))
+        // Recorded files
         .route("/api/recorded", get(get_recorded_files))
         .route("/api/recorded/{id}", get(get_recorded_file))
         .route("/api/recorded/{id}", delete(delete_recorded_file))
         .route("/api/recorded/{id}/download", get(download_recorded_file))
+        // Trash
         .route("/api/trash", get(get_trash_files))
         .route("/api/trash/{id}", get(get_trash_file))
         .route("/api/trash/{id}", delete(permanent_delete_trash))
         .route("/api/trash/{id}/restore", post(restore_trash_file))
         .route("/api/trash/cleanup", post(manual_cleanup))
         .route("/api/trash/thumbnails/{filename}", get(serve_trash_thumbnail))
+        // Thumbnails
         .route("/thumbnails/{filename}", get(serve_thumbnail))
+        // Programs & Schedules (new)
+        .route("/api/programs", get(get_programs))
+        .route("/api/services", get(get_services))
+        .route("/api/schedules", get(get_schedules))
+        .route("/api/schedules", post(create_schedule))
+        .route("/api/schedules/{program_id}", delete(delete_schedule))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -712,4 +727,73 @@ async fn cleanup_expired(state: &AppState) -> usize {
     }
 
     cleaned
+}
+
+// ── Programs & Schedules handlers ──
+
+async fn get_programs(
+    State(state): State<AppState>,
+    Query(params): Query<ProgramQuery>,
+) -> Result<Json<Vec<mirakc::Program>>, StatusCode> {
+    let programs = mirakc::fetch_programs(
+        &state.mirakc_api,
+        params.start_at,
+        params.end_at,
+    )
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to fetch programs: {}", e);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+    Ok(Json(programs))
+}
+
+async fn get_services(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<mirakc::Service>>, StatusCode> {
+    let services = mirakc::fetch_services(&state.mirakc_api)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch services: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(Json(services))
+}
+
+async fn get_schedules(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<mirakc::RecordingSchedule>>, StatusCode> {
+    let schedules = mirakc::fetch_schedules(&state.mirakc_api)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch schedules: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(Json(schedules))
+}
+
+async fn create_schedule(
+    State(state): State<AppState>,
+    Json(input): Json<mirakc::ScheduleInput>,
+) -> Result<(StatusCode, Json<mirakc::RecordingSchedule>), StatusCode> {
+    let schedule = mirakc::create_schedule(&state.mirakc_api, input)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to create schedule: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok((StatusCode::CREATED, Json(schedule)))
+}
+
+async fn delete_schedule(
+    State(state): State<AppState>,
+    Path(program_id): Path<u64>,
+) -> Result<StatusCode, StatusCode> {
+    mirakc::delete_schedule(&state.mirakc_api, program_id)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to delete schedule {}: {}", program_id, e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        })?;
+    Ok(StatusCode::OK)
 }

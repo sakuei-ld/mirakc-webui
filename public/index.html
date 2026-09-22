@@ -79,6 +79,224 @@ body {
   border-color: var(--accent);
   color: #fff;
 }
+/* Schedule tab controls */
+.schedule-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.date-nav button {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+}
+.date-nav button:hover { border-color: var(--accent); }
+.date-nav .date-label {
+  font-size: 14px;
+  font-weight: 600;
+  min-width: 100px;
+  text-align: center;
+}
+.channel-filter {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+.channel-filter:focus { border-color: var(--accent); }
+/* Program grid (guide view) */
+.program-grid-container {
+  overflow-x: auto;
+  padding: 0 24px 24px;
+}
+.program-grid {
+  display: grid;
+  grid-template-columns: 60px repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  min-width: fit-content;
+}
+.program-grid .time-col {
+  background: var(--bg-card);
+  padding: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  position: sticky;
+  left: 0;
+  z-index: 10;
+}
+.program-grid .channel-header {
+  background: var(--bg-card);
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.program-grid .program-cell {
+  background: var(--bg-card);
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-left: 2px solid transparent;
+}
+.program-grid .program-cell:hover {
+  background: var(--bg-hover);
+  border-left-color: var(--accent);
+}
+.program-grid .program-cell.recording {
+  background: rgba(78,201,147,0.1);
+  border-left-color: var(--green);
+}
+.program-grid .program-cell.reserved {
+  background: rgba(108,140,255,0.1);
+  border-left-color: var(--accent);
+}
+.program-grid .program-cell .prog-name {
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+.program-grid .program-cell .prog-time {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.program-grid .program-cell .prog-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+.program-grid .program-cell .prog-badge.paid {
+  background: rgba(255,179,71,0.2);
+  color: var(--orange);
+}
+/* Schedule list */
+.schedule-list {
+  padding: 0 24px 24px;
+}
+.schedule-date-group {
+  margin-bottom: 16px;
+}
+.schedule-date-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 8px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  transition: border-color 0.15s;
+}
+.schedule-item:hover { border-color: var(--accent); }
+.schedule-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 90px;
+}
+.schedule-info {
+  flex: 1;
+  min-width: 0;
+}
+.schedule-program-name {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.schedule-channel-name {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.schedule-cancel-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.schedule-cancel-btn:hover { border-color: var(--red); color: var(--red); }
+/* Manual reservation form */
+.reservation-form {
+  padding: 0 24px 24px;
+}
+.reservation-form form {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.reservation-form label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.reservation-form input,
+.reservation-form select {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+}
+.reservation-form input:focus,
+.reservation-form select:focus { border-color: var(--accent); }
+.reservation-form .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.reservation-form .form-actions .btn {
+  min-width: 80px;
+  text-align: center;
+}
 .sort-btn.active {
   background: var(--accent);
   border-color: var(--accent);
@@ -381,6 +599,9 @@ body {
   <h1>📺 mirakc-webui</h1>
   <div class="controls">
     <button class="tab-btn active" data-tab="recorded">📁 録画一覧</button>
+    <button class="tab-btn" data-tab="guide">📺 番組表</button>
+    <button class="tab-btn" data-tab="schedules">📅 予約一覧</button>
+    <button class="tab-btn" data-tab="manual-reserve">⏰ 予約</button>
     <button class="tab-btn" data-tab="trash">🗑 ゴミ箱</button>
     <input type="text" class="search-box" id="searchBox" placeholder="番組名・チャンネルで検索...">
     <button class="sort-btn active" data-sort="">最新順</button>
@@ -743,6 +964,429 @@ function escHtml(s) {
   const d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
+}
+
+// ── Schedule data ──
+let programs = [];
+let services = [];
+let schedules = [];
+let guideDate = new Date();
+let guideChannelFilter = '';
+
+// Tab switching
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    currentSort = '';
+    currentSearch = '';
+    document.getElementById('searchBox').value = '';
+    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector('.sort-btn[data-sort=""]').classList.add('active');
+    loadData();
+  });
+});
+
+async function loadData() {
+  switch (currentTab) {
+    case 'recorded':
+      await fetchFiles();
+      renderGrid(allFiles, false);
+      break;
+    case 'trash':
+      await fetchTrashFiles();
+      renderGrid(trashFiles, true);
+      break;
+    case 'guide':
+      await Promise.all([fetchPrograms(), fetchServices()]);
+      renderProgramGuide();
+      break;
+    case 'schedules':
+      await fetchSchedules();
+      renderScheduleList();
+      break;
+    case 'manual-reserve':
+      await fetchServices();
+      renderManualReserveForm();
+      break;
+  }
+}
+
+// ── Programs API ──
+async function fetchPrograms() {
+  const startOfDay = new Date(guideDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(guideDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const params = new URLSearchParams();
+  params.set('start_at', Math.floor(startOfDay.getTime() / 1000));
+  params.set('end_at', Math.floor(endOfDay.getTime() / 1000));
+  
+  try {
+    const res = await fetch(`/api/programs?${params.toString()}`);
+    programs = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch programs:', e);
+    programs = [];
+  }
+}
+
+async function fetchServices() {
+  try {
+    const res = await fetch('/api/services');
+    services = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch services:', e);
+    services = [];
+  }
+}
+
+async function fetchSchedules() {
+  try {
+    const res = await fetch('/api/schedules');
+    schedules = await res.json();
+  } catch (e) {
+    console.error('Failed to fetch schedules:', e);
+    schedules = [];
+  }
+}
+
+// ── Program Guide ──
+function renderProgramGuide() {
+  const grid = document.getElementById('grid');
+  document.getElementById('countBadge').textContent = `${programs.length}番組`;
+  
+  if (services.length === 0) {
+    grid.innerHTML = '<div class="loading"><div>サービス情報を読み込めません</div></div>';
+    return;
+  }
+  
+  // Filter by date
+  const startOfDay = new Date(guideDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(guideDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  const dayPrograms = programs.filter(p => p.start_at * 1000 >= startOfDay.getTime() && p.start_at * 1000 <= endOfDay.getTime());
+  
+  // Filter by channel
+  let filteredPrograms = dayPrograms;
+  if (guideChannelFilter) {
+    const filterServiceId = parseInt(guideChannelFilter);
+    filteredPrograms = dayPrograms.filter(p => p.service_id === filterServiceId);
+  }
+  
+  // Get time slots (every 30 minutes)
+  const timeSlots = [];
+  for (let h = 0; h < 24; h += 1) {
+    timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+  }
+  
+  // Get services to display
+  let displayServices = services;
+  if (guideChannelFilter) {
+    displayServices = services.filter(s => s.id === parseInt(guideChannelFilter));
+  }
+  
+  let html = '<div class="program-grid-container"><div class="program-grid">';
+  
+  // Header row
+  html += '<div class="time-col">時間</div>';
+  displayServices.forEach(s => {
+    html += `<div class="channel-header">${escHtml(s.name || s.service_name)}</div>`;
+  });
+  
+  // Time rows
+  timeSlots.forEach(time => {
+    html += `<div class="time-col">${time}</div>`;
+    
+    displayServices.forEach(service => {
+      const servicePrograms = filteredPrograms
+        .filter(p => p.service_id === service.id)
+        .filter(p => {
+          const startHour = new Date(p.start_at * 1000).getHours();
+          const startMin = new Date(p.start_at * 1000).getMinutes();
+          const [h, m] = time.split(':').map(Number);
+          const slotMinutes = h * 60 + m;
+          const programMinutes = startHour * 60 + startMin;
+          return programMinutes <= slotMinutes && (startHour + 1) * 60 > slotMinutes;
+        });
+      
+      if (servicePrograms.length > 0) {
+        const prog = servicePrograms[0];
+        const isReserved = schedules.some(s => s.program_id === prog.id);
+        const classes = ['program-cell'];
+        if (isReserved) classes.push('reserved');
+        
+        const paidBadge = prog.is_paid ? '<span class="prog-badge paid">有料</span>' : '';
+        const start = new Date(prog.start_at * 1000);
+        const end = new Date(prog.end_at * 1000);
+        const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+        
+        html += `<div class="${classes.join(' ')}" onclick="showProgramDetail(${prog.id})">
+          <div class="prog-name">${escHtml(prog.name)}${paidBadge}</div>
+          <div class="prog-time">${timeStr}</div>
+        </div>`;
+      } else {
+        html += '<div class="program-cell" style="opacity:0.3">-</div>';
+      }
+    });
+  });
+  
+  html += '</div></div>';
+  grid.innerHTML = html;
+}
+
+function showProgramDetail(programId) {
+  const prog = programs.find(p => p.id === String(programId));
+  if (!prog) return;
+  
+  const overlay = document.getElementById('modalOverlay');
+  const content = document.getElementById('modalContent');
+  overlay.classList.add('open');
+  
+  const service = services.find(s => s.id === prog.service_id);
+  const isReserved = schedules.some(s => s.program_id === prog.id);
+  
+  const start = new Date(prog.start_at * 1000);
+  const end = new Date(prog.end_at * 1000);
+  const timeStr = `${start.toLocaleDateString()} ${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+  
+  content.innerHTML = `
+    <div class="modal-title">${escHtml(prog.name)}</div>
+    <div class="modal-channel">${service ? escHtml(service.name) : '不明'}</div>
+    <div class="modal-stats">
+      <div class="stat-box">
+        <div class="label">時間</div>
+        <div class="value accent">${timeStr}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">種別</div>
+        <div class="value">${prog.is_paid ? '有料' : '無料'}</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">予約</div>
+        <div class="value ${isReserved ? 'green' : 'orange'}">${isReserved ? '予約済み' : '未予約'}</div>
+      </div>
+    </div>
+    ${prog.description ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:16px;line-height:1.5">${escHtml(prog.description)}</div>` : ''}
+    <div class="modal-actions">
+      ${isReserved ? `<button class="btn danger" onclick="cancelSchedule(${prog.id})">予約取消</button>` : `<button class="btn primary" onclick="reserveProgram(${prog.id})">録画予約</button>`}
+      <button class="btn" onclick="closeModal()">閉じる</button>
+    </div>
+  `;
+}
+
+async function reserveProgram(programId) {
+  const prog = programs.find(p => p.id === String(programId));
+  if (!prog) return;
+  
+  const service = services.find(s => s.id === prog.service_id);
+  if (!service) {
+    alert('サービス情報が見つかりません');
+    return;
+  }
+  
+  const input = {
+    program_id: prog.id,
+    start_at: prog.start_at,
+    end_at: prog.end_at,
+    service_id: service.id,
+    options: {},
+    tags: []
+  };
+  
+  try {
+    const res = await fetch('/api/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+    
+    if (res.ok) {
+      await fetchSchedules();
+      renderProgramGuide();
+      closeModal();
+      alert('予約しました');
+    } else {
+      alert('予約に失敗しました');
+    }
+  } catch (e) {
+    alert('エラー: ' + e.message);
+  }
+}
+
+async function cancelSchedule(programId) {
+  showConfirm(
+    '予約取消',
+    'この予約を取消しますか？',
+    `Program ID: ${programId}`,
+    async () => {
+      try {
+        const res = await fetch(`/api/schedules/${programId}`, { method: 'DELETE' });
+        if (res.ok) {
+          await fetchSchedules();
+          renderProgramGuide();
+          closeConfirm();
+          alert('予約を取消しました');
+        } else {
+          alert('取消に失敗しました');
+        }
+      } catch (e) {
+        alert('エラー: ' + e.message);
+      }
+    }
+  );
+}
+
+// ── Schedule List ──
+function renderScheduleList() {
+  const grid = document.getElementById('grid');
+  document.getElementById('countBadge').textContent = `${schedules.length}件`;
+  
+  if (schedules.length === 0) {
+    grid.innerHTML = '<div class="loading"><div>予約一覧は空です</div></div>';
+    return;
+  }
+  
+  // Group by date
+  const groups = {};
+  schedules.forEach(s => {
+    const date = new Date(s.start_at * 1000);
+    const dateKey = date.toLocaleDateString();
+    if (!groups[dateKey]) groups[dateKey] = [];
+    groups[dateKey].push(s);
+  });
+  
+  // Sort each group by start time
+  Object.values(groups).forEach(arr => arr.sort((a, b) => a.start_at - b.start_at));
+  
+  let html = '<div class="schedule-list">';
+  Object.entries(groups).forEach(([dateKey, items]) => {
+    html += `<div class="schedule-date-group">`;
+    html += `<div class="schedule-date-label">${dateKey}</div>`;
+    
+    items.forEach(s => {
+      const start = new Date(s.start_at * 1000);
+      const end = new Date(s.end_at * 1000);
+      const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+      
+      html += `<div class="schedule-item">
+        <div class="schedule-time">${timeStr}</div>
+        <div class="schedule-info">
+          <div class="schedule-program-name">${escHtml(s.program_name)}</div>
+          <div class="schedule-channel-name">${escHtml(s.service_name)}</div>
+        </div>
+        <button class="schedule-cancel-btn" onclick="cancelSchedule(${s.program_id})">取消</button>
+      </div>`;
+    });
+    
+    html += `</div>`;
+  });
+  
+  html += '</div>';
+  grid.innerHTML = html;
+}
+
+// ── Manual Reservation ──
+function renderManualReserveForm() {
+  const grid = document.getElementById('grid');
+  
+  let serviceOptions = '<option value="">サービスを選択...</option>';
+  services.forEach(s => {
+    serviceOptions += `<option value="${s.id}">${escHtml(s.name || s.service_name)}</option>`;
+  });
+  
+  grid.innerHTML = `
+    <div class="reservation-form">
+      <form id="manualReserveForm" onsubmit="submitManualReserve(event)">
+        <div>
+          <label>日付</label>
+          <input type="date" id="reserveDate" required>
+        </div>
+        <div>
+          <label>サービス</label>
+          <select id="reserveService" required>${serviceOptions}</select>
+        </div>
+        <div>
+          <label>開始時刻</label>
+          <input type="time" id="reserveStart" required>
+        </div>
+        <div>
+          <label>終了時刻</label>
+          <input type="time" id="reserveEnd" required>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn primary">予約</button>
+          <button type="reset" class="btn">リセット</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  // Set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('reserveDate').value = today;
+}
+
+async function submitManualReserve(event) {
+  event.preventDefault();
+  
+  const dateStr = document.getElementById('reserveDate').value;
+  const serviceId = parseInt(document.getElementById('reserveService').value);
+  const [startH, startM] = document.getElementById('reserveStart').value.split(':').map(Number);
+  const [endH, endM] = document.getElementById('reserveEnd').value.split(':').map(Number);
+  
+  if (!serviceId) {
+    alert('サービスを選択してください');
+    return;
+  }
+  
+  const start = new Date(dateStr);
+  start.setHours(startH, startM, 0, 0);
+  const end = new Date(dateStr);
+  end.setHours(endH, endM, 0, 0);
+  
+  if (end <= start) {
+    alert('終了時刻は開始時刻より後にしてください');
+    return;
+  }
+  
+  const service = services.find(s => s.id === serviceId);
+  if (!service) {
+    alert('サービス情報が見つかりません');
+    return;
+  }
+  
+  const input = {
+    program_id: 0, // 0 is placeholder for manual reservation
+    start_at: Math.floor(start.getTime() / 1000),
+    end_at: Math.floor(end.getTime() / 1000),
+    service_id: service.id,
+    options: {},
+    tags: []
+  };
+  
+  try {
+    const res = await fetch('/api/schedules', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input)
+    });
+    
+    if (res.ok) {
+      await fetchSchedules();
+      renderManualReserveForm();
+      alert('予約しました');
+    } else {
+      const text = await res.text();
+      alert(`予約に失敗しました: ${text}`);
+    }
+  } catch (e) {
+    alert('エラー: ' + e.message);
+  }
 }
 
 // Init
