@@ -80,24 +80,30 @@ pub struct EpgGenre {
     pub un2: u8,
 }
 
-/// Program series info
+/// Program series info (mirakc 3.x)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgramSeries {
-    pub series_id: u64,
-    pub program_name: String,
-    pub episode_name: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub next_episode_id: Option<u64>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub last_episode_id: Option<u64>,
+    pub id: u16,
+    pub repeat: u8,
+    pub pattern: u8,
+    pub expire_at: i64,
+    pub episode: u16,
+    pub last_episode: u16,
+    pub name: String,
 }
 
 /// Related program item
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgramRelatedItem {
+    #[serde(rename = "type")]
     pub group_type: String,
-    pub network_id: u16,
+    #[serde(default)]
+    pub network_id: Option<u16>,
+    #[serde(default)]
     pub service_id: u16,
+    #[serde(default)]
     pub event_id: u16,
 }
 
