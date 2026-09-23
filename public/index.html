@@ -1022,12 +1022,12 @@ async function fetchServices() {
   try {
     const res = await fetch('/api/services');
     const allServices = await res.json();
-    // mirakc 3.x returns duplicate services (e.g., BS services multiple times)
-    // Deduplicate by service_id (u16)
+    // mirakc 3.x: deduplicate by unique id (u64), not service_id (u16)
+    // Because BS services have different id but same service_id
     const seen = new Set();
     services = allServices.filter(s => {
-      if (seen.has(s.service_id)) return false;
-      seen.add(s.service_id);
+      if (seen.has(s.id)) return false;
+      seen.add(s.id);
       return true;
     });
   } catch (e) {
@@ -1076,38 +1076,59 @@ function renderProgramGuide() {
     displayServices = services.filter(s => s.service_id === filterServiceId);
   }
   
-  // Get time slots (every 30 minutes)
-  const timeSlots = [];
-  for (let h = 0; h < 24; h += 1) {
-    timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
+  // Build grid: 1440 rows (one per minute), with hour markers every 60 rows
+  const ROWS_PER_HOUR = 60;
+  const TOTAL_ROWS = ROWS_PER_HOUR * 24;
+  
+  // Precompute hour labels
+  const hourLabels = [];
+  for (let h = 0; h < 24; h++) {
+    hourLabels.push({ hour: h, label: `${h.toString().padStart(2, '0')}:00` });
   }
   
-  let html = '<div class="program-grid-container"><div class="program-grid">';
-  
-  // Header row
-  html += '<div class="time-col">時間</div>';
-  displayServices.forEach(s => {
-    html += `<div class="channel-header">${escHtml(s.name)}</div>`;
+  // Build program lookup: for each service, create a map of minute -> program
+  const serviceProgramMap = {};
+  displayServices.forEach(service => {
+    const serviceId = service.id;
+    serviceProgramMap[serviceId] = {};
+    filteredPrograms
+      .filter(p => p.service_id === service.service_id && p.start_at)
+      .forEach(prog => {
+        const startMinute = new Date(prog.start_at * 1000).getHours() * 60 + new Date(prog.start_at * 1000).getMinutes();
+        const durationMin = Math.ceil((prog.duration || 0) / 60000);
+        const endMinute = startMinute + durationMin;
+        
+        for (let m = startMinute; m < endMinute; m++) {
+          if (!serviceProgramMap[serviceId][m]) {
+            serviceProgramMap[serviceId][m] = [];
+          }
+          serviceProgramMap[serviceId][m].push({ prog, startMinute, endMinute });
+        }
+      });
   });
   
-  // Time rows
-  timeSlots.forEach(time => {
-    html += `<div class="time-col">${time}</div>`;
+  // Set grid columns dynamically: time col + one per service
+  const colDef = `60px repeat(${displayServices.length}, minmax(200px, 1fr))`;
+  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: 40px repeat(1440, 1px); grid-template-columns: ${colDef};">`;
+  
+  // Header row
+  html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
+  displayServices.forEach(s => {
+    html += `<div class="channel-header" style="position:sticky;top:0;z-index:20;background:var(--bg-card)">${escHtml(s.name)}</div>`;
+  });
+  
+  // Time column rows (every hour)
+  hourLabels.forEach((hl, idx) => {
+    const row = idx * ROWS_PER_HOUR + 1;
+    html += `<div class="time-col" style="grid-row:${row};position:sticky;left:0;z-index:10;background:var(--bg-card)">${hl.label}</div>`;
     
     displayServices.forEach(service => {
-      const servicePrograms = filteredPrograms
-        .filter(p => p.service_id === service.service_id && p.start_at)
-        .filter(p => {
-          const startHour = new Date(p.start_at * 1000).getHours();
-          const startMin = new Date(p.start_at * 1000).getMinutes();
-          const [h, m] = time.split(':').map(Number);
-          const slotMinutes = h * 60 + m;
-          const programMinutes = startHour * 60 + startMin;
-          return programMinutes <= slotMinutes && (startHour + 1) * 60 > slotMinutes;
-        });
+      const serviceId = service.id;
+      const minute = hl.hour * 60;
+      const progs = serviceProgramMap[serviceId]?.[minute];
       
-      if (servicePrograms.length > 0) {
-        const prog = servicePrograms[0];
+      if (progs && progs.length > 0) {
+        const { prog, startMinute, endMinute } = progs[0];
         const isReserved = schedules.some(s => s.program.id === prog.id);
         const classes = ['program-cell'];
         if (isReserved) classes.push('reserved');
@@ -1118,12 +1139,15 @@ function renderProgramGuide() {
         const end = new Date(start.getTime() + durationMs);
         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
         
-        html += `<div class="${classes.join(' ')}" onclick="showProgramDetail(${prog.id})">
+        const rowSpan = endMinute - startMinute;
+        const startRow = startMinute + 1;
+        
+        html += `<div class="${classes.join(' ')}" style="grid-row:${startRow}/${startRow + rowSpan};min-height:${rowSpan}px" onclick="showProgramDetail(${prog.id})">
           <div class="prog-name">${escHtml(prog.name || '無題')}${paidBadge}</div>
           <div class="prog-time">${timeStr}</div>
         </div>`;
       } else {
-        html += '<div class="program-cell" style="opacity:0.3">-</div>';
+        html += '<div class="program-cell" style="opacity:0.3;min-height:60px">-</div>';
       }
     });
   });
@@ -1140,7 +1164,7 @@ function showProgramDetail(programId) {
   const content = document.getElementById('modalContent');
   overlay.classList.add('open');
   
-  const service = services.find(s => s.id === prog.service_id);
+  const service = services.find(s => s.service_id === prog.service_id);
   const isReserved = schedules.some(s => s.program.id === prog.id);
   
   const start = new Date(prog.start_at * 1000);
@@ -1177,7 +1201,7 @@ async function reserveProgram(programId) {
   const prog = programs.find(p => p.id === Number(programId));
   if (!prog) return;
   
-  const service = services.find(s => s.id === prog.service_id);
+  const service = services.find(s => s.service_id === prog.service_id);
   if (!service) {
     alert('サービス情報が見つかりません');
     return;
@@ -1266,7 +1290,7 @@ function renderScheduleList() {
       const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
       
-      const service = services.find(sv => sv.id === s.program.service_id);
+      const service = services.find(sv => sv.service_id === s.program.service_id);
       
       html += `<div class="schedule-item">
         <div class="schedule-time">${timeStr}</div>
