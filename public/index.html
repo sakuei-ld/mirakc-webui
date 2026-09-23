@@ -124,12 +124,10 @@ body {
 }
 .program-grid {
   display: grid;
-  grid-template-columns: 60px repeat(auto-fill, minmax(200px, 1fr));
   gap: 1px;
   background: var(--border);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  min-width: fit-content;
 }
 .program-grid .time-col {
   background: var(--bg-card);
@@ -1049,7 +1047,12 @@ async function fetchSchedules() {
 // ── Program Guide ──
 function renderProgramGuide() {
   const grid = document.getElementById('grid');
-  document.getElementById('countBadge').textContent = `${programs.length}番組`;
+  document.getElementById('countBadge').textContent = `${programs.length}番組 (${services.length}ch)`;
+  
+  console.log('renderProgramGuide: programs=', programs.length, 'services=', services.length);
+  if (programs.length > 0) {
+    console.log('  first program:', programs[0]);
+  }
   
   if (services.length === 0) {
     grid.innerHTML = '<div class="loading"><div>サービス情報を読み込めません</div></div>';
@@ -1066,6 +1069,7 @@ function renderProgramGuide() {
     if (!p.start_at) return false;
     return p.start_at >= Math.floor(startOfDay.getTime() / 1000) && p.start_at <= Math.floor(endOfDay.getTime() / 1000);
   });
+  console.log('dayPrograms:', dayPrograms.length);
   
   // Filter by channel
   let filteredPrograms = dayPrograms;
@@ -1078,7 +1082,7 @@ function renderProgramGuide() {
   
   // Build grid: 1440 rows (one per minute), with hour markers every 60 rows
   const ROWS_PER_HOUR = 60;
-  const TOTAL_ROWS = ROWS_PER_HOUR * 24;
+  const COL_WIDTH = 180; // px per channel column
   
   // Precompute hour labels
   const hourLabels = [];
@@ -1107,9 +1111,11 @@ function renderProgramGuide() {
       });
   });
   
-  // Set grid columns dynamically: time col + one per service
-  const colDef = `60px repeat(${displayServices.length}, minmax(200px, 1fr))`;
-  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: 40px repeat(1440, 1px); grid-template-columns: ${colDef};">`;
+  // Set grid columns dynamically: time col (60px) + one per service (fixed width)
+  const colDef = `60px ${Array(displayServices.length).fill(`${COL_WIDTH}px`).join(' ')}`;
+  const rowHeight = 2; // px per minute row
+  const totalHeight = 1440 * rowHeight;
+  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: 40px repeat(1440, ${rowHeight}px); grid-template-columns: ${colDef}; height: ${totalHeight}px; overflow-y: auto;">`;
   
   // Header row
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
