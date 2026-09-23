@@ -5,10 +5,14 @@ use tracing::{info, warn};
 
 /// MirakurunProgram (mirakc 3.x API)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Program {
     pub id: u64,
+    #[serde(default)]
     pub event_id: u16,
+    #[serde(default)]
     pub service_id: u16,
+    #[serde(default)]
     pub network_id: u16,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub start_at: Option<i64>,
@@ -37,13 +41,16 @@ pub struct Program {
 
 /// Video descriptor
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgramVideo {
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub video_type: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resolution: Option<String>,
-    pub stream_content: u8,
-    pub component_type: u8,
+    #[serde(default)]
+    pub stream_content: Option<u8>,
+    #[serde(default)]
+    pub component_type: Option<u8>,
 }
 
 /// Audio descriptor
@@ -257,7 +264,7 @@ pub async fn fetch_programs(
     let client = reqwest::Client::new();
     let mut url = format!("{}/api/programs", api_base);
     if let (Some(s), Some(e)) = (start_at, end_at) {
-        url.push_str(&format!("?start_at={}&end_at={}", s, e));
+        url.push_str(&format!("?startAt={}&endAt={}", s, e));
     }
     info!("Fetching programs: {}", url);
     client.get(&url).send().await?.json().await

@@ -1092,7 +1092,7 @@ function renderProgramGuide() {
     
     displayServices.forEach(service => {
       const servicePrograms = filteredPrograms
-        .filter(p => p.service_id === service.id && p.start_at)
+        .filter(p => p.service_id === service.service_id && p.start_at)
         .filter(p => {
           const startHour = new Date(p.start_at * 1000).getHours();
           const startMin = new Date(p.start_at * 1000).getMinutes();
