@@ -55,14 +55,17 @@ pub struct ProgramVideo {
 
 /// Audio descriptor
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProgramAudio {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub service_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub audio_type: Option<String>,
+    #[serde(default)]
     pub content_type: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub sampling_rate: Option<String>,
+    #[serde(default)]
     pub bit_rate: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub main_component_flag: Option<bool>,
