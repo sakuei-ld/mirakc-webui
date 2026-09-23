@@ -93,6 +93,7 @@ pub struct ProgramRelatedItem {
 
 /// MirakurunService (mirakc 3.x API)
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Service {
     pub id: u64,
     pub service_id: u16,
