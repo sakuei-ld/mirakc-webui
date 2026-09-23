@@ -63,8 +63,8 @@ pub struct ProgramAudio {
     pub audio_type: Option<String>,
     #[serde(default)]
     pub content_type: u8,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub sampling_rate: Option<String>,
+    #[serde(default)]
+    pub sampling_rate: i32,
     #[serde(default)]
     pub bit_rate: u8,
     #[serde(default, skip_serializing_if = "Option::is_none")]
