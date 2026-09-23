@@ -1021,7 +1021,15 @@ async function fetchPrograms() {
 async function fetchServices() {
   try {
     const res = await fetch('/api/services');
-    services = await res.json();
+    const allServices = await res.json();
+    // mirakc 3.x returns duplicate services (e.g., BS services multiple times)
+    // Deduplicate by service_id (u16)
+    const seen = new Set();
+    services = allServices.filter(s => {
+      if (seen.has(s.service_id)) return false;
+      seen.add(s.service_id);
+      return true;
+    });
   } catch (e) {
     console.error('Failed to fetch services:', e);
     services = [];
@@ -1061,21 +1069,17 @@ function renderProgramGuide() {
   
   // Filter by channel
   let filteredPrograms = dayPrograms;
+  let displayServices = services;
   if (guideChannelFilter) {
     const filterServiceId = parseInt(guideChannelFilter);
     filteredPrograms = dayPrograms.filter(p => p.service_id === filterServiceId);
+    displayServices = services.filter(s => s.service_id === filterServiceId);
   }
   
   // Get time slots (every 30 minutes)
   const timeSlots = [];
   for (let h = 0; h < 24; h += 1) {
     timeSlots.push(`${h.toString().padStart(2, '0')}:00`);
-  }
-  
-  // Get services to display
-  let displayServices = services;
-  if (guideChannelFilter) {
-    displayServices = services.filter(s => s.id === parseInt(guideChannelFilter));
   }
   
   let html = '<div class="program-grid-container"><div class="program-grid">';
