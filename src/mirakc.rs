@@ -97,16 +97,15 @@ pub struct Service {
     pub id: u64,
     pub service_id: u16,
     pub network_id: u16,
+    #[serde(rename = "type")]
     pub service_type: u16,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub logo_id: Option<i16>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub remote_control_key_id: Option<u16>,
+    #[serde(default)]
+    pub logo_id: i16,
+    #[serde(default)]
+    pub remote_control_key_id: u16,
     pub name: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub channel: Option<ServiceChannel>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub has_logo_data: Option<bool>,
+    pub channel: ServiceChannel,
+    pub has_logo_data: bool,
 }
 
 /// Service channel info
@@ -257,7 +256,7 @@ pub async fn fetch_programs(
     let client = reqwest::Client::new();
     let mut url = format!("{}/api/programs", api_base);
     if let (Some(s), Some(e)) = (start_at, end_at) {
-        url.push_str(&format!("&start_at={}&end_at={}", s, e));
+        url.push_str(&format!("?start_at={}&end_at={}", s, e));
     }
     info!("Fetching programs: {}", url);
     client.get(&url).send().await?.json().await
