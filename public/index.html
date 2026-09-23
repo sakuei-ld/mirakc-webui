@@ -966,27 +966,12 @@ function escHtml(s) {
   return d.innerHTML;
 }
 
-// ── Schedule data ──
+// ── Schedule data (mirakc 3.x types) ──
 let programs = [];
 let services = [];
 let schedules = [];
 let guideDate = new Date();
 let guideChannelFilter = '';
-
-// Tab switching
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentTab = btn.dataset.tab;
-    currentSort = '';
-    currentSearch = '';
-    document.getElementById('searchBox').value = '';
-    document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
-    document.querySelector('.sort-btn[data-sort=""]').classList.add('active');
-    loadData();
-  });
-});
 
 async function loadData() {
   switch (currentTab) {
@@ -1069,7 +1054,10 @@ function renderProgramGuide() {
   const endOfDay = new Date(guideDate);
   endOfDay.setHours(23, 59, 59, 999);
   
-  const dayPrograms = programs.filter(p => p.start_at * 1000 >= startOfDay.getTime() && p.start_at * 1000 <= endOfDay.getTime());
+  const dayPrograms = programs.filter(p => {
+    if (!p.start_at) return false;
+    return p.start_at >= Math.floor(startOfDay.getTime() / 1000) && p.start_at <= Math.floor(endOfDay.getTime() / 1000);
+  });
   
   // Filter by channel
   let filteredPrograms = dayPrograms;
@@ -1095,7 +1083,7 @@ function renderProgramGuide() {
   // Header row
   html += '<div class="time-col">時間</div>';
   displayServices.forEach(s => {
-    html += `<div class="channel-header">${escHtml(s.name || s.service_name)}</div>`;
+    html += `<div class="channel-header">${escHtml(s.name)}</div>`;
   });
   
   // Time rows
@@ -1104,7 +1092,7 @@ function renderProgramGuide() {
     
     displayServices.forEach(service => {
       const servicePrograms = filteredPrograms
-        .filter(p => p.service_id === service.id)
+        .filter(p => p.service_id === service.id && p.start_at)
         .filter(p => {
           const startHour = new Date(p.start_at * 1000).getHours();
           const startMin = new Date(p.start_at * 1000).getMinutes();
@@ -1116,17 +1104,18 @@ function renderProgramGuide() {
       
       if (servicePrograms.length > 0) {
         const prog = servicePrograms[0];
-        const isReserved = schedules.some(s => s.program_id === prog.id);
+        const isReserved = schedules.some(s => s.program.id === prog.id);
         const classes = ['program-cell'];
         if (isReserved) classes.push('reserved');
         
-        const paidBadge = prog.is_paid ? '<span class="prog-badge paid">有料</span>' : '';
+        const paidBadge = !prog.is_free ? '<span class="prog-badge paid">有料</span>' : '';
         const start = new Date(prog.start_at * 1000);
-        const end = new Date(prog.end_at * 1000);
+        const durationMs = prog.duration || 0;
+        const end = new Date(start.getTime() + durationMs);
         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
         
         html += `<div class="${classes.join(' ')}" onclick="showProgramDetail(${prog.id})">
-          <div class="prog-name">${escHtml(prog.name)}${paidBadge}</div>
+          <div class="prog-name">${escHtml(prog.name || '無題')}${paidBadge}</div>
           <div class="prog-time">${timeStr}</div>
         </div>`;
       } else {
@@ -1140,7 +1129,7 @@ function renderProgramGuide() {
 }
 
 function showProgramDetail(programId) {
-  const prog = programs.find(p => p.id === String(programId));
+  const prog = programs.find(p => p.id === Number(programId));
   if (!prog) return;
   
   const overlay = document.getElementById('modalOverlay');
@@ -1148,14 +1137,15 @@ function showProgramDetail(programId) {
   overlay.classList.add('open');
   
   const service = services.find(s => s.id === prog.service_id);
-  const isReserved = schedules.some(s => s.program_id === prog.id);
+  const isReserved = schedules.some(s => s.program.id === prog.id);
   
   const start = new Date(prog.start_at * 1000);
-  const end = new Date(prog.end_at * 1000);
+  const durationMs = prog.duration || 0;
+  const end = new Date(start.getTime() + durationMs);
   const timeStr = `${start.toLocaleDateString()} ${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
   
   content.innerHTML = `
-    <div class="modal-title">${escHtml(prog.name)}</div>
+    <div class="modal-title">${escHtml(prog.name || '無題')}</div>
     <div class="modal-channel">${service ? escHtml(service.name) : '不明'}</div>
     <div class="modal-stats">
       <div class="stat-box">
@@ -1164,7 +1154,7 @@ function showProgramDetail(programId) {
       </div>
       <div class="stat-box">
         <div class="label">種別</div>
-        <div class="value">${prog.is_paid ? '有料' : '無料'}</div>
+        <div class="value">${!prog.is_free ? '有料' : '無料'}</div>
       </div>
       <div class="stat-box">
         <div class="label">予約</div>
@@ -1180,7 +1170,7 @@ function showProgramDetail(programId) {
 }
 
 async function reserveProgram(programId) {
-  const prog = programs.find(p => p.id === String(programId));
+  const prog = programs.find(p => p.id === Number(programId));
   if (!prog) return;
   
   const service = services.find(s => s.id === prog.service_id);
@@ -1189,11 +1179,9 @@ async function reserveProgram(programId) {
     return;
   }
   
+  // mirakc 3.x: WebRecordingScheduleInput = { program_id, options, tags }
   const input = {
     program_id: prog.id,
-    start_at: prog.start_at,
-    end_at: prog.end_at,
-    service_id: service.id,
     options: {},
     tags: []
   };
@@ -1241,7 +1229,7 @@ async function cancelSchedule(programId) {
   );
 }
 
-// ── Schedule List ──
+// ── Schedule List (mirakc 3.x: schedule has nested program) ──
 function renderScheduleList() {
   const grid = document.getElementById('grid');
   document.getElementById('countBadge').textContent = `${schedules.length}件`;
@@ -1254,14 +1242,14 @@ function renderScheduleList() {
   // Group by date
   const groups = {};
   schedules.forEach(s => {
-    const date = new Date(s.start_at * 1000);
+    const date = new Date(s.program.start_at * 1000);
     const dateKey = date.toLocaleDateString();
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(s);
   });
   
   // Sort each group by start time
-  Object.values(groups).forEach(arr => arr.sort((a, b) => a.start_at - b.start_at));
+  Object.values(groups).forEach(arr => arr.sort((a, b) => a.program.start_at - b.program.start_at));
   
   let html = '<div class="schedule-list">';
   Object.entries(groups).forEach(([dateKey, items]) => {
@@ -1269,17 +1257,20 @@ function renderScheduleList() {
     html += `<div class="schedule-date-label">${dateKey}</div>`;
     
     items.forEach(s => {
-      const start = new Date(s.start_at * 1000);
-      const end = new Date(s.end_at * 1000);
+      const start = new Date(s.program.start_at * 1000);
+      const durationMs = s.program.duration || 0;
+      const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+      
+      const service = services.find(sv => sv.id === s.program.service_id);
       
       html += `<div class="schedule-item">
         <div class="schedule-time">${timeStr}</div>
         <div class="schedule-info">
-          <div class="schedule-program-name">${escHtml(s.program_name)}</div>
-          <div class="schedule-channel-name">${escHtml(s.service_name)}</div>
+          <div class="schedule-program-name">${escHtml(s.program.name || '無題')}</div>
+          <div class="schedule-channel-name">${escHtml(service ? service.name : '不明')}</div>
         </div>
-        <button class="schedule-cancel-btn" onclick="cancelSchedule(${s.program_id})">取消</button>
+        <button class="schedule-cancel-btn" onclick="cancelSchedule(${s.program.id})">取消</button>
       </div>`;
     });
     
@@ -1296,7 +1287,7 @@ function renderManualReserveForm() {
   
   let serviceOptions = '<option value="">サービスを選択...</option>';
   services.forEach(s => {
-    serviceOptions += `<option value="${s.id}">${escHtml(s.name || s.service_name)}</option>`;
+    serviceOptions += `<option value="${s.id}">${escHtml(s.name)}</option>`;
   });
   
   grid.innerHTML = `
@@ -1360,11 +1351,9 @@ async function submitManualReserve(event) {
     return;
   }
   
+  // mirakc 3.x: program_id is required, use a placeholder
   const input = {
-    program_id: 0, // 0 is placeholder for manual reservation
-    start_at: Math.floor(start.getTime() / 1000),
-    end_at: Math.floor(end.getTime() / 1000),
-    service_id: service.id,
+    program_id: 0,
     options: {},
     tags: []
   };
