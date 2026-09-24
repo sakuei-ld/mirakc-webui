@@ -117,24 +117,7 @@ body {
   outline: none;
 }
 .channel-filter:focus { border-color: var(--accent); }
-/* Program grid (guide view) */
-.program-grid-container {
-  overflow-x: auto;
-  padding: 0 24px 24px;
-}
-/* Guide mode: container fills available height */
-.grid.guide-view .program-grid-container {
-  flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-}
-.grid.guide-view .program-grid {
-  flex: 1;
-  overflow-y: auto;
-}
+
 .program-grid {
   display: grid;
   gap: 1px;
@@ -336,8 +319,7 @@ body {
 }
 .grid.guide-view .program-grid-container {
   flex: 1;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -347,6 +329,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Card */
@@ -721,16 +704,6 @@ async function fetchTrashFiles() {
   }
 }
 
-async function loadData() {
-  if (currentTab === 'recorded') {
-    await fetchFiles();
-    renderGrid(allFiles, false);
-  } else {
-    await fetchTrashFiles();
-    renderGrid(trashFiles, true);
-  }
-}
-
 // Render grid
 function renderGrid(files, isTrash) {
   const grid = document.getElementById('grid');
@@ -1092,6 +1065,7 @@ function renderProgramGuide() {
   console.log('renderProgramGuide: programs=', programs.length, 'services=', services.length);
   if (programs.length > 0) {
     console.log('  first program:', programs[0]);
+    console.log('  first start_at:', programs[0].start_at, 'duration:', programs[0].duration);
   }
   
   if (services.length === 0) {
@@ -1105,14 +1079,18 @@ function renderProgramGuide() {
   const endOfDay = new Date(guideDate);
   endOfDay.setHours(23, 59, 59, 999);
   
-  // mirakc 3.x returns start_at in SECONDS, convert to ms for comparison
-  const dayMsStart = Math.floor(startOfDay.getTime() / 1000);
-  const dayMsEnd = Math.floor(endOfDay.getTime() / 1000);
+  // mirakc 3.x returns start_at in SECONDS — convert to ms for comparison
+  const dayMsStart = startOfDay.getTime();
+  const dayMsEnd = endOfDay.getTime();
   const dayPrograms = programs.filter(p => {
     if (!p.start_at) return false;
-    return p.start_at >= dayMsStart && p.start_at <= dayMsEnd;
+    const startMs = p.start_at * 1000;
+    return startMs >= dayMsStart && startMs <= dayMsEnd;
   });
-  console.log('dayPrograms:', dayPrograms.length);
+  console.log('dayPrograms:', dayPrograms.length, 'filter:', dayMsStart, '-', dayMsEnd);
+  if (dayPrograms.length === 0 && programs.length > 0) {
+    console.log('  first program start_at:', programs[0].start_at, 'service_id:', programs[0].service_id);
+  }
   
   // Filter by channel
   let filteredPrograms = dayPrograms;
@@ -1141,9 +1119,12 @@ function renderProgramGuide() {
     filteredPrograms
       .filter(p => p.service_id === service.service_id && p.start_at)
       .forEach(prog => {
-        const start = new Date(prog.start_at * 1000);
+        // start_at is in SECONDS from mirakc 3.x
+        const startMs = prog.start_at * 1000;
+        const start = new Date(startMs);
         const startMinute = start.getHours() * 60 + start.getMinutes();
         const durationMin = Math.ceil((prog.duration || 0) / 60000);
+        console.log('  service:', service.name, 'prog:', prog.name, 'start_at:', prog.start_at, 'startMin:', startMinute, 'duration:', prog.duration, 'durationMin:', durationMin);
         const endMinute = startMinute + durationMin;
         
         for (let m = startMinute; m < endMinute; m++) {
@@ -1163,15 +1144,16 @@ function renderProgramGuide() {
   const serviceColWidth = Math.max(120, Math.floor(availableWidth / displayServices.length));
   
   // Set grid dimensions to fill viewport
-  const headerHeight = 40;
-  const rowHeight = 2;
-  const totalHeight = 1440 * rowHeight;
-  const gridMaxHeight = window.innerHeight - 140; // account for header + padding
+  const headerHeight = 24;
+  const minRowHeight = 16;
+  const gridMaxHeight = window.innerHeight - 100; // account for header + padding
+  const totalHeight = headerHeight + 1440 * minRowHeight;
   const gridHeight = Math.min(totalHeight, gridMaxHeight);
   
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
-  let html = `<div class="program-grid-container" style="padding-bottom:0"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${rowHeight}px); grid-template-columns: ${colDef};">`;
+  console.log('gridHeight:', gridHeight, 'totalHeight:', totalHeight);
+  let html = `<div class="program-grid-container" style="padding-bottom:0"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${minRowHeight}px); grid-template-columns: ${colDef}; height: ${gridHeight}px; overflow-y: auto;">`;
   
   // Header row (row 1)
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
@@ -1207,7 +1189,8 @@ function renderProgramGuide() {
         if (isReserved) classes.push('reserved');
         
         const paidBadge = !prog.is_free ? '<span class="prog-badge paid">有料</span>' : '';
-        const start = new Date(prog.start_at * 1000);
+        const startMs = prog.start_at * 1000;
+        const start = new Date(startMs);
         const durationMs = prog.duration || 0;
         const end = new Date(start.getTime() + durationMs);
         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
@@ -1240,7 +1223,8 @@ function showProgramDetail(programId) {
   const service = services.find(s => s.service_id === prog.service_id);
   const isReserved = schedules.some(s => s.program.id === prog.id);
   
-  const start = new Date(prog.start_at * 1000);
+  const startMs = prog.start_at * 1000;
+  const start = new Date(startMs);
   const durationMs = prog.duration || 0;
   const end = new Date(start.getTime() + durationMs);
   const timeStr = `${start.toLocaleDateString()} ${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
@@ -1343,7 +1327,8 @@ function renderScheduleList() {
   // Group by date
   const groups = {};
   schedules.forEach(s => {
-    const date = new Date(s.program.start_at * 1000);
+    const dateMs = s.program.start_at * 1000;
+    const date = new Date(dateMs);
     const dateKey = date.toLocaleDateString();
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(s);
@@ -1358,7 +1343,8 @@ function renderScheduleList() {
     html += `<div class="schedule-date-label">${dateKey}</div>`;
     
     items.forEach(s => {
-      const start = new Date(s.program.start_at * 1000);
+      const startMs = s.program.start_at * 1000;
+      const start = new Date(startMs);
       const durationMs = s.program.duration || 0;
       const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
