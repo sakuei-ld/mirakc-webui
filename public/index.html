@@ -122,6 +122,18 @@ body {
   overflow-x: auto;
   padding: 0 24px 24px;
 }
+/* Guide mode: container fills available height */
+.grid.guide-view .program-grid-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.grid.guide-view .program-grid {
+  flex: 1;
+  overflow: hidden;
+}
 .program-grid {
   display: grid;
   gap: 1px;
@@ -312,6 +324,30 @@ body {
   gap: 16px;
   padding: 24px;
 }
+/* Guide mode: fill remaining viewport */
+.grid.guide-view {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 80px);
+  overflow: hidden;
+  padding: 0;
+  gap: 0;
+}
+.grid.guide-view .program-grid-container {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.grid.guide-view .program-grid {
+  flex: 1;
+  min-height: 0;
+  height: auto !important;
+  overflow-y: auto;
+}
+
 /* Card */
 .card {
   background: var(--bg-card);
@@ -972,6 +1008,9 @@ let guideDate = new Date();
 let guideChannelFilter = '';
 
 async function loadData() {
+  const grid = document.getElementById('grid');
+  // Toggle guide-view class for full-viewport layout
+  grid.classList.toggle('guide-view', currentTab === 'guide');
   switch (currentTab) {
     case 'recorded':
       await fetchFiles();
@@ -1067,7 +1106,7 @@ function renderProgramGuide() {
   
   const dayPrograms = programs.filter(p => {
     if (!p.start_at) return false;
-    return p.start_at >= Math.floor(startOfDay.getTime() / 1000) && p.start_at <= Math.floor(endOfDay.getTime() / 1000);
+    return p.start_at >= startOfDay.getTime() && p.start_at <= endOfDay.getTime();
   });
   console.log('dayPrograms:', dayPrograms.length);
   
@@ -1082,7 +1121,7 @@ function renderProgramGuide() {
   
   // Build grid: 1440 rows (one per minute), with hour markers every 60 rows
   const ROWS_PER_HOUR = 60;
-  const COL_WIDTH = 180; // px per channel column
+  const COL_WIDTH = 200; // px per channel column
   
   // Precompute hour labels
   const hourLabels = [];
@@ -1098,7 +1137,7 @@ function renderProgramGuide() {
     filteredPrograms
       .filter(p => p.service_id === service.service_id && p.start_at)
       .forEach(prog => {
-        const startMinute = new Date(prog.start_at * 1000).getHours() * 60 + new Date(prog.start_at * 1000).getMinutes();
+        const startMinute = new Date(prog.start_at).getHours() * 60 + new Date(prog.start_at).getMinutes();
         const durationMin = Math.ceil((prog.duration || 0) / 60000);
         const endMinute = startMinute + durationMin;
         
@@ -1111,26 +1150,49 @@ function renderProgramGuide() {
       });
   });
   
-  // Set grid columns dynamically: time col (60px) + one per service (fixed width)
-  const colDef = `60px ${Array(displayServices.length).fill(`${COL_WIDTH}px`).join(' ')}`;
-  const rowHeight = 2; // px per minute row
-  const totalHeight = 1440 * rowHeight;
-  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: 40px repeat(1440, ${rowHeight}px); grid-template-columns: ${colDef}; height: ${totalHeight}px; overflow-y: auto;">`;
+  // Calculate responsive column widths
+  const gridContainer = document.querySelector('.program-grid-container');
+  const containerWidth = gridContainer ? gridContainer.clientWidth : window.innerWidth - 48;
+  const timeColWidth = 60;
+  const availableWidth = containerWidth - timeColWidth;
+  const serviceColWidth = Math.max(120, Math.floor(availableWidth / displayServices.length));
   
-  // Header row
+  // Set grid dimensions to fill viewport
+  const headerHeight = 40;
+  const rowHeight = 2;
+  const totalHeight = 1440 * rowHeight;
+  const gridMaxHeight = window.innerHeight - 140; // account for header + padding
+  const gridHeight = Math.min(totalHeight, gridMaxHeight);
+  
+  const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
+  console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
+  let html = `<div class="program-grid-container" style="padding-bottom:0"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${rowHeight}px); grid-template-columns: ${colDef};">`;
+  
+  // Header row (row 1)
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
   displayServices.forEach(s => {
     html += `<div class="channel-header" style="position:sticky;top:0;z-index:20;background:var(--bg-card)">${escHtml(s.name)}</div>`;
   });
   
-  // Time column rows (every hour)
-  hourLabels.forEach((hl, idx) => {
-    const row = idx * ROWS_PER_HOUR + 1;
-    html += `<div class="time-col" style="grid-row:${row};position:sticky;left:0;z-index:10;background:var(--bg-card)">${hl.label}</div>`;
+  // Build all 1440 rows (minute by minute)
+  // Row 1 = header, so minute 0 = row 2, hour 00:00 = row 62
+  const HEADER_OFFSET = 1; // row 1 is header
+  
+  for (let minute = 0; minute < 1440; minute++) {
+    const row = minute + 1 + HEADER_OFFSET;
+    const h = Math.floor(minute / 60);
+    const isHourStart = minute % 60 === 0;
     
+    // Time column cell
+    if (isHourStart) {
+      html += `<div class="time-col" style="grid-row:${row};grid-column:1;position:sticky;left:0;z-index:10;background:var(--bg-card)">${h.toString().padStart(2, '0')}:00</div>`;
+    } else {
+      html += `<div class="time-col" style="grid-row:${row};grid-column:1;background:var(--bg-card)"></div>`;
+    }
+    
+    // Program cells for each service
     displayServices.forEach(service => {
       const serviceId = service.id;
-      const minute = hl.hour * 60;
       const progs = serviceProgramMap[serviceId]?.[minute];
       
       if (progs && progs.length > 0) {
@@ -1140,23 +1202,23 @@ function renderProgramGuide() {
         if (isReserved) classes.push('reserved');
         
         const paidBadge = !prog.is_free ? '<span class="prog-badge paid">有料</span>' : '';
-        const start = new Date(prog.start_at * 1000);
+        const start = new Date(prog.start_at);
         const durationMs = prog.duration || 0;
         const end = new Date(start.getTime() + durationMs);
         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
         
         const rowSpan = endMinute - startMinute;
-        const startRow = startMinute + 1;
+        const startRow = startMinute + 1 + HEADER_OFFSET;
         
-        html += `<div class="${classes.join(' ')}" style="grid-row:${startRow}/${startRow + rowSpan};min-height:${rowSpan}px" onclick="showProgramDetail(${prog.id})">
+        html += `<div class="${classes.join(' ')}" style="grid-row:${startRow}/${startRow + rowSpan}" onclick="showProgramDetail(${prog.id})">
           <div class="prog-name">${escHtml(prog.name || '無題')}${paidBadge}</div>
           <div class="prog-time">${timeStr}</div>
         </div>`;
       } else {
-        html += '<div class="program-cell" style="opacity:0.3;min-height:60px">-</div>';
+        html += `<div class="program-cell" style="grid-row:${row};opacity:0.3"></div>`;
       }
     });
-  });
+  }
   
   html += '</div></div>';
   grid.innerHTML = html;
@@ -1173,7 +1235,7 @@ function showProgramDetail(programId) {
   const service = services.find(s => s.service_id === prog.service_id);
   const isReserved = schedules.some(s => s.program.id === prog.id);
   
-  const start = new Date(prog.start_at * 1000);
+  const start = new Date(prog.start_at);
   const durationMs = prog.duration || 0;
   const end = new Date(start.getTime() + durationMs);
   const timeStr = `${start.toLocaleDateString()} ${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
@@ -1276,7 +1338,7 @@ function renderScheduleList() {
   // Group by date
   const groups = {};
   schedules.forEach(s => {
-    const date = new Date(s.program.start_at * 1000);
+    const date = new Date(s.program.start_at);
     const dateKey = date.toLocaleDateString();
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(s);
@@ -1291,7 +1353,7 @@ function renderScheduleList() {
     html += `<div class="schedule-date-label">${dateKey}</div>`;
     
     items.forEach(s => {
-      const start = new Date(s.program.start_at * 1000);
+      const start = new Date(s.program.start_at);
       const durationMs = s.program.duration || 0;
       const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
