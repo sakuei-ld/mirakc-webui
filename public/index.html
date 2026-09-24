@@ -125,14 +125,15 @@ body {
 /* Guide mode: container fills available height */
 .grid.guide-view .program-grid-container {
   flex: 1;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
 }
 .grid.guide-view .program-grid {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
 }
 .program-grid {
   display: grid;
@@ -159,7 +160,7 @@ body {
   color: var(--accent);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -335,7 +336,8 @@ body {
 }
 .grid.guide-view .program-grid-container {
   flex: 1;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -344,7 +346,6 @@ body {
 .grid.guide-view .program-grid {
   flex: 1;
   min-height: 0;
-  height: auto !important;
   overflow-y: auto;
 }
 
@@ -1104,9 +1105,12 @@ function renderProgramGuide() {
   const endOfDay = new Date(guideDate);
   endOfDay.setHours(23, 59, 59, 999);
   
+  // mirakc 3.x returns start_at in SECONDS, convert to ms for comparison
+  const dayMsStart = Math.floor(startOfDay.getTime() / 1000);
+  const dayMsEnd = Math.floor(endOfDay.getTime() / 1000);
   const dayPrograms = programs.filter(p => {
     if (!p.start_at) return false;
-    return p.start_at >= startOfDay.getTime() && p.start_at <= endOfDay.getTime();
+    return p.start_at >= dayMsStart && p.start_at <= dayMsEnd;
   });
   console.log('dayPrograms:', dayPrograms.length);
   
@@ -1137,7 +1141,8 @@ function renderProgramGuide() {
     filteredPrograms
       .filter(p => p.service_id === service.service_id && p.start_at)
       .forEach(prog => {
-        const startMinute = new Date(prog.start_at).getHours() * 60 + new Date(prog.start_at).getMinutes();
+        const start = new Date(prog.start_at * 1000);
+        const startMinute = start.getHours() * 60 + start.getMinutes();
         const durationMin = Math.ceil((prog.duration || 0) / 60000);
         const endMinute = startMinute + durationMin;
         
@@ -1202,7 +1207,7 @@ function renderProgramGuide() {
         if (isReserved) classes.push('reserved');
         
         const paidBadge = !prog.is_free ? '<span class="prog-badge paid">有料</span>' : '';
-        const start = new Date(prog.start_at);
+        const start = new Date(prog.start_at * 1000);
         const durationMs = prog.duration || 0;
         const end = new Date(start.getTime() + durationMs);
         const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
@@ -1235,7 +1240,7 @@ function showProgramDetail(programId) {
   const service = services.find(s => s.service_id === prog.service_id);
   const isReserved = schedules.some(s => s.program.id === prog.id);
   
-  const start = new Date(prog.start_at);
+  const start = new Date(prog.start_at * 1000);
   const durationMs = prog.duration || 0;
   const end = new Date(start.getTime() + durationMs);
   const timeStr = `${start.toLocaleDateString()} ${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
@@ -1338,7 +1343,7 @@ function renderScheduleList() {
   // Group by date
   const groups = {};
   schedules.forEach(s => {
-    const date = new Date(s.program.start_at);
+    const date = new Date(s.program.start_at * 1000);
     const dateKey = date.toLocaleDateString();
     if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(s);
@@ -1353,7 +1358,7 @@ function renderScheduleList() {
     html += `<div class="schedule-date-label">${dateKey}</div>`;
     
     items.forEach(s => {
-      const start = new Date(s.program.start_at);
+      const start = new Date(s.program.start_at * 1000);
       const durationMs = s.program.duration || 0;
       const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
