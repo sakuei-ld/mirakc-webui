@@ -1145,15 +1145,11 @@ function renderProgramGuide() {
   
   // Set grid dimensions to fill viewport
   const headerHeight = 24;
-  const minRowHeight = 16;
-  const gridMaxHeight = window.innerHeight - 100; // account for header + padding
-  const totalHeight = headerHeight + 1440 * minRowHeight;
-  const gridHeight = Math.min(totalHeight, gridMaxHeight);
+  const minRowHeight = 28; // enough for padding + 12px font
   
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
-  console.log('gridHeight:', gridHeight, 'totalHeight:', totalHeight);
-  let html = `<div class="program-grid-container" style="padding-bottom:0"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${minRowHeight}px); grid-template-columns: ${colDef}; height: ${gridHeight}px; overflow-y: auto;">`;
+  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${minRowHeight}px); grid-template-columns: ${colDef};">`;
   
   // Header row (row 1)
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
@@ -1179,8 +1175,7 @@ function renderProgramGuide() {
     
     // Program cells for each service
     displayServices.forEach(service => {
-      const serviceId = service.id;
-      const progs = serviceProgramMap[serviceId]?.[minute];
+      const progs = serviceProgramMap[service.id]?.[minute];
       
       if (progs && progs.length > 0) {
         const { prog, startMinute, endMinute } = progs[0];
