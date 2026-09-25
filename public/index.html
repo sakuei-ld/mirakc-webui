@@ -1142,13 +1142,22 @@ function renderProgramGuide() {
   
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
-  console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id })));
+  console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
+  console.log('filteredPrograms:', filteredPrograms.length);
+  // Count programs per service_id
+  const svcIdCounts = {};
+  filteredPrograms.forEach(p => {
+    svcIdCounts[p.service_id] = (svcIdCounts[p.service_id] || 0) + 1;
+  });
+  console.log('programs per service_id:', svcIdCounts);
   console.log('dayPrograms count:', dayPrograms.length);
   console.log('serviceProgramMap keys:', Object.keys(serviceProgramMap));
   let hasPrograms = false;
   for (const sid in serviceProgramMap) {
-    const keys = Object.keys(serviceProgramMap[sid]);
-    console.log(`  serviceId ${sid}: ${keys.length} minute entries, first: ${keys[0]}`);
+    const entries = serviceProgramMap[sid];
+    const keys = Object.keys(entries);
+    const totalProgs = Object.values(entries).reduce((sum, arr) => sum + arr.length, 0);
+    console.log(`  serviceId ${sid}: ${keys.length} minute entries, ${totalProgs} total prog entries`);
     if (keys.length > 0) hasPrograms = true;
   }
   console.log('hasPrograms:', hasPrograms);
