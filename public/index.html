@@ -1153,12 +1153,6 @@ function renderProgramGuide() {
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
   console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
   console.log('filteredPrograms:', filteredPrograms.length);
-  // Count programs per service_id
-  const svcIdCounts = {};
-  filteredPrograms.forEach(p => {
-    svcIdCounts[p.service_id] = (svcIdCounts[p.service_id] || 0) + 1;
-  });
-  console.log('programs per service_id:', svcIdCounts);
   console.log('dayPrograms count:', dayPrograms.length);
   console.log('serviceProgramMap keys:', Object.keys(serviceProgramMap));
   let hasPrograms = false;
