@@ -1032,6 +1032,7 @@ async function fetchServices() {
   try {
     const res = await fetch('/api/services');
     const allServices = await res.json();
+    console.log('fetchServices: allServices=', allServices.length, allServices.slice(0, 5).map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
     // mirakc 3.x: deduplicate by unique id (u64), not service_id (u16)
     // Because BS services have different id but same service_id
     const seen = new Set();
@@ -1040,6 +1041,7 @@ async function fetchServices() {
       seen.add(s.id);
       return true;
     });
+    console.log('fetchServices: deduplicated services=', services.length, services.slice(0, 5).map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
   } catch (e) {
     console.error('Failed to fetch services:', e);
     services = [];
@@ -1086,6 +1088,12 @@ function renderProgramGuide() {
     return p.startAt >= dayMsStart && p.startAt <= dayMsEnd;
   });
   console.log('dayPrograms:', dayPrograms.length, 'filter(ms):', dayMsStart, '-', dayMsEnd);
+  // Count programs per service_id
+  const svcIdCounts = {};
+  dayPrograms.forEach(p => {
+    svcIdCounts[p.service_id] = (svcIdCounts[p.service_id] || 0) + 1;
+  });
+  console.log('dayPrograms per service_id:', svcIdCounts);
   if (dayPrograms.length === 0 && programs.length > 0) {
     console.log('  first program startAt(ms):', programs[0].startAt, 'service_id:', programs[0].serviceId);
     console.log('  dayMsStart:', dayMsStart, 'dayMsEnd:', dayMsEnd);
@@ -1110,25 +1118,26 @@ function renderProgramGuide() {
     hourLabels.push({ hour: h, label: `${h.toString().padStart(2, '0')}:00` });
   }
   
-  // Build program lookup: for each service, create a map of minute -> program
+  // Build program lookup: for each service_id, create a map of minute -> program
   const serviceProgramMap = {};
   displayServices.forEach(service => {
-    const serviceId = service.id;
-    serviceProgramMap[serviceId] = {};
+    const svcId = service.service_id;  // Use service_id (u16) as key
+    if (!serviceProgramMap[svcId]) {
+      serviceProgramMap[svcId] = {};
+    }
     filteredPrograms
-      .filter(p => p.service_id === service.service_id && p.startAt)
+      .filter(p => p.service_id === svcId && p.startAt)
       .forEach(prog => {
         const start = new Date(prog.startAt);
         const startMinute = start.getHours() * 60 + start.getMinutes();
         const durationMin = Math.ceil((prog.duration || 0) / 60000);
-        console.log('  service:', service.name, 'prog:', prog.name, 'startAt(ms):', prog.startAt, 'startMin:', startMinute, 'duration(ms):', prog.duration, 'durationMin:', durationMin);
         const endMinute = startMinute + durationMin;
         
         for (let m = startMinute; m < endMinute; m++) {
-          if (!serviceProgramMap[serviceId][m]) {
-            serviceProgramMap[serviceId][m] = [];
+          if (!serviceProgramMap[svcId][m]) {
+            serviceProgramMap[svcId][m] = [];
           }
-          serviceProgramMap[serviceId][m].push({ prog, startMinute, endMinute });
+          serviceProgramMap[svcId][m].push({ prog, startMinute, endMinute });
         }
       });
   });
@@ -1187,7 +1196,7 @@ function renderProgramGuide() {
     
     // Program cells for each service
     displayServices.forEach(service => {
-      const progs = serviceProgramMap[service.id]?.[minute];
+      const progs = serviceProgramMap[service.service_id]?.[minute];
       
       if (progs && progs.length > 0) {
         const { prog, startMinute, endMinute } = progs[0];
