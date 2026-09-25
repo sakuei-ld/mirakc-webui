@@ -1032,7 +1032,7 @@ async function fetchServices() {
   try {
     const res = await fetch('/api/services');
     const allServices = await res.json();
-    console.log('fetchServices: allServices=', allServices.length, allServices.slice(0, 5).map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
+    console.log('fetchServices: allServices=', allServices.length, JSON.stringify(allServices.slice(0, 5)));
     // mirakc 3.x: deduplicate by unique id (u64), not service_id (u16)
     // Because BS services have different id but same service_id
     const seen = new Set();
@@ -1041,7 +1041,7 @@ async function fetchServices() {
       seen.add(s.id);
       return true;
     });
-    console.log('fetchServices: deduplicated services=', services.length, services.slice(0, 5).map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
+    console.log('fetchServices: deduplicated services=', services.length, JSON.stringify(services.slice(0, 5)));
   } catch (e) {
     console.error('Failed to fetch services:', e);
     services = [];
@@ -1091,11 +1091,11 @@ function renderProgramGuide() {
   // Count programs per service_id
   const svcIdCounts = {};
   dayPrograms.forEach(p => {
-    svcIdCounts[p.service_id] = (svcIdCounts[p.service_id] || 0) + 1;
+    svcIdCounts[p.serviceId] = (svcIdCounts[p.serviceId] || 0) + 1;
   });
-  console.log('dayPrograms per service_id:', svcIdCounts);
+  console.log('dayPrograms per serviceId:', svcIdCounts);
   if (dayPrograms.length === 0 && programs.length > 0) {
-    console.log('  first program startAt(ms):', programs[0].startAt, 'service_id:', programs[0].serviceId);
+    console.log('  first program startAt(ms):', programs[0].startAt, 'serviceId:', programs[0].serviceId);
     console.log('  dayMsStart:', dayMsStart, 'dayMsEnd:', dayMsEnd);
   }
   
@@ -1104,8 +1104,8 @@ function renderProgramGuide() {
   let displayServices = services;
   if (guideChannelFilter) {
     const filterServiceId = parseInt(guideChannelFilter);
-    filteredPrograms = dayPrograms.filter(p => p.service_id === filterServiceId);
-    displayServices = services.filter(s => s.service_id === filterServiceId);
+    filteredPrograms = dayPrograms.filter(p => p.serviceId === filterServiceId);
+    displayServices = services.filter(s => s.serviceId === filterServiceId);
   }
   
   // Build grid: 1440 rows (one per minute), with hour markers every 60 rows
@@ -1121,12 +1121,12 @@ function renderProgramGuide() {
   // Build program lookup: for each service_id, create a map of minute -> program
   const serviceProgramMap = {};
   displayServices.forEach(service => {
-    const svcId = service.service_id;  // Use service_id (u16) as key
+    const svcId = service.serviceId;  // Use serviceId (u16) as key
     if (!serviceProgramMap[svcId]) {
       serviceProgramMap[svcId] = {};
     }
     filteredPrograms
-      .filter(p => p.service_id === svcId && p.startAt)
+      .filter(p => p.serviceId === svcId && p.startAt)
       .forEach(prog => {
         const start = new Date(prog.startAt);
         const startMinute = start.getHours() * 60 + start.getMinutes();
@@ -1151,7 +1151,7 @@ function renderProgramGuide() {
   
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
-  console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id, name: s.name })));
+  console.log('serviceIds:', displayServices.map(s => ({ id: s.id, serviceId: s.serviceId, name: s.name })));
   console.log('filteredPrograms:', filteredPrograms.length);
   console.log('dayPrograms count:', dayPrograms.length);
   console.log('serviceProgramMap keys:', Object.keys(serviceProgramMap));
@@ -1190,7 +1190,7 @@ function renderProgramGuide() {
     
     // Program cells for each service
     displayServices.forEach(service => {
-      const progs = serviceProgramMap[service.service_id]?.[minute];
+      const progs = serviceProgramMap[service.serviceId]?.[minute];
       
       if (progs && progs.length > 0) {
         const { prog, startMinute, endMinute } = progs[0];
@@ -1229,7 +1229,7 @@ function showProgramDetail(programId) {
   const content = document.getElementById('modalContent');
   overlay.classList.add('open');
   
-  const service = services.find(s => s.service_id === prog.service_id);
+  const service = services.find(s => s.serviceId === prog.serviceId);
   const isReserved = schedules.some(s => s.program.id === prog.id);
   
   const start = new Date(prog.startAt);
@@ -1266,7 +1266,7 @@ async function reserveProgram(programId) {
   const prog = programs.find(p => p.id === Number(programId));
   if (!prog) return;
   
-  const service = services.find(s => s.service_id === prog.service_id);
+  const service = services.find(s => s.serviceId === prog.serviceId);
   if (!service) {
     alert('サービス情報が見つかりません');
     return;
@@ -1355,7 +1355,7 @@ function renderScheduleList() {
       const end = new Date(start.getTime() + durationMs);
       const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')}〜${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
       
-      const service = services.find(sv => sv.service_id === s.program.service_id);
+      const service = services.find(sv => sv.serviceId === s.program.serviceId);
       
       html += `<div class="schedule-item">
         <div class="schedule-time">${timeStr}</div>
