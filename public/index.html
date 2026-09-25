@@ -328,8 +328,7 @@ body {
 .grid.guide-view .program-grid {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: auto;
 }
 
 /* Card */
@@ -1123,8 +1122,9 @@ function renderProgramGuide() {
         const startMs = prog.start_at * 1000;
         const start = new Date(startMs);
         const startMinute = start.getHours() * 60 + start.getMinutes();
-        const durationMin = Math.ceil((prog.duration || 0) / 60000);
-        console.log('  service:', service.name, 'prog:', prog.name, 'start_at:', prog.start_at, 'startMin:', startMinute, 'duration:', prog.duration, 'durationMin:', durationMin);
+        // duration is in SECONDS from mirakc 3.x
+        const durationMin = Math.ceil((prog.duration || 0) / 60);
+        console.log('  service:', service.name, 'prog:', prog.name, 'start_at(sec):', prog.start_at, 'startMin:', startMinute, 'duration(sec):', prog.duration, 'durationMin:', durationMin);
         const endMinute = startMinute + durationMin;
         
         for (let m = startMinute; m < endMinute; m++) {
@@ -1143,13 +1143,16 @@ function renderProgramGuide() {
   const availableWidth = containerWidth - timeColWidth;
   const serviceColWidth = Math.max(120, Math.floor(availableWidth / displayServices.length));
   
-  // Set grid dimensions to fill viewport
-  const headerHeight = 24;
-  const minRowHeight = 28; // enough for padding + 12px font
-  
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
-  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: ${headerHeight}px repeat(1440, ${minRowHeight}px); grid-template-columns: ${colDef};">`;
+  console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id })));
+  // Calculate total grid height from viewport
+  const headerHeightPx = 24;
+  const rowHeightPx = 32;
+  const totalRows = 1440;
+  const gridHeight = Math.min(headerHeightPx + totalRows * rowHeightPx, window.innerHeight - 80);
+  console.log('gridHeight:', gridHeight, 'headerHeightPx:', headerHeightPx, 'totalRows:', totalRows, 'rowHeightPx:', rowHeightPx);
+  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: ${headerHeightPx}px repeat(${totalRows}, ${rowHeightPx}px); grid-template-columns: ${colDef}; height: ${gridHeight}px; overflow: auto;">`;
   
   // Header row (row 1)
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
