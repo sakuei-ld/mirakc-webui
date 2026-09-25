@@ -312,7 +312,7 @@ body {
 .grid.guide-view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 80px);
+  height: 100vh;
   overflow: hidden;
   padding: 0;
   gap: 0;
@@ -1078,17 +1078,18 @@ function renderProgramGuide() {
   const endOfDay = new Date(guideDate);
   endOfDay.setHours(23, 59, 59, 999);
   
-  // mirakc 3.x returns start_at in SECONDS — convert to ms for comparison
-  const dayMsStart = startOfDay.getTime();
-  const dayMsEnd = endOfDay.getTime();
+  // mirakc 3.x returns start_at in SECONDS, duration in SECONDS
+  const daySecStart = Math.floor(startOfDay.getTime() / 1000);
+  const daySecEnd = Math.floor(endOfDay.getTime() / 1000);
   const dayPrograms = programs.filter(p => {
     if (!p.start_at) return false;
-    const startMs = p.start_at * 1000;
-    return startMs >= dayMsStart && startMs <= dayMsEnd;
+    return p.start_at >= daySecStart && p.start_at <= daySecEnd;
   });
-  console.log('dayPrograms:', dayPrograms.length, 'filter:', dayMsStart, '-', dayMsEnd);
+  console.log('dayPrograms:', dayPrograms.length, 'filter(sec):', daySecStart, '-', daySecEnd);
   if (dayPrograms.length === 0 && programs.length > 0) {
-    console.log('  first program start_at:', programs[0].start_at, 'service_id:', programs[0].service_id);
+    console.log('  first program start_at(sec):', programs[0].start_at, 'service_id:', programs[0].service_id);
+    console.log('  daySecStart:', daySecStart, 'daySecEnd:', daySecEnd);
+    console.log('  programs[0].start_at * 1000:', programs[0].start_at * 1000);
   }
   
   // Filter by channel
@@ -1146,13 +1147,23 @@ function renderProgramGuide() {
   const colDef = `${timeColWidth}px ${Array(displayServices.length).fill(`${serviceColWidth}px`).join(' ')}`;
   console.log('displayServices:', displayServices.length, displayServices.map(s => s.name));
   console.log('serviceIds:', displayServices.map(s => ({ id: s.id, service_id: s.service_id })));
-  // Calculate total grid height from viewport
-  const headerHeightPx = 24;
+  // Calculate grid height dynamically from actual header height
+  const headerEl = document.querySelector('.header');
+  const headerHeightPx = headerEl ? headerEl.offsetHeight : 80;
   const rowHeightPx = 32;
   const totalRows = 1440;
-  const gridHeight = Math.min(headerHeightPx + totalRows * rowHeightPx, window.innerHeight - 80);
-  console.log('gridHeight:', gridHeight, 'headerHeightPx:', headerHeightPx, 'totalRows:', totalRows, 'rowHeightPx:', rowHeightPx);
-  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: ${headerHeightPx}px repeat(${totalRows}, ${rowHeightPx}px); grid-template-columns: ${colDef}; height: ${gridHeight}px; overflow: auto;">`;
+  const gridHeight = window.innerHeight - headerHeightPx;
+  console.log('headerHeightPx:', headerHeightPx, 'gridHeight:', gridHeight, 'totalRows:', totalRows, 'rowHeightPx:', rowHeightPx);
+  console.log('dayPrograms count:', dayPrograms.length);
+  console.log('serviceProgramMap keys:', Object.keys(serviceProgramMap));
+  let hasPrograms = false;
+  for (const sid in serviceProgramMap) {
+    const keys = Object.keys(serviceProgramMap[sid]);
+    console.log(`  serviceId ${sid}: ${keys.length} minute entries, first: ${keys[0]}`);
+    if (keys.length > 0) hasPrograms = true;
+  }
+  console.log('hasPrograms:', hasPrograms);
+  let html = `<div class="program-grid-container"><div class="program-grid" style="grid-template-rows: ${rowHeightPx}px repeat(${totalRows}, ${rowHeightPx}px); grid-template-columns: ${colDef}; height: ${gridHeight}px; overflow: auto;">`;
   
   // Header row (row 1)
   html += '<div class="time-col" style="position:sticky;left:0;z-index:20;background:var(--bg-card)">時間</div>';
